@@ -3,116 +3,120 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PIN Kod Tizimi — 24 soatlik (ko‘p marotaba ishlatish)</title>
+  <title>PIN — 36 soat (21–25 avg 2025)</title>
   <style>
-    :root { --bg:#0f172a; --card:#111827; --accent:#06b6d4; --ok:#22c55e; --err:#ef4444; --muted:#9ca3af; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(135deg, var(--bg), #111827 50%, #0b1022);
-      color:#e5e7eb; min-height:100vh; display:grid; place-items:center; padding:24px; }
-    .wrap { width:100%; max-width:460px; background:rgba(17,24,39,.85); border:1px solid rgba(255,255,255,.05);
-      border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.35); padding:28px; backdrop-filter: blur(6px); }
-    h1 { font-size:22px; margin:0 0 10px; letter-spacing:.3px; }
-    .sub { margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.4; }
-    .inputgroup { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:10px; }
-    input[type="text"] { width:100%; padding:14px 16px; background:#0b1220; border:1px solid #233147; border-radius:12px;
-      color:#e5e7eb; font-size:18px; letter-spacing:2px; text-align:center; outline:none; transition:border-color .2s ease; }
-    input[type="text"]:focus { border-color: var(--accent); }
-    button { padding:12px 16px; border:0; border-radius:12px; cursor:pointer; font-weight:600;
-      transition: transform .06s ease, opacity .2s ease; }
-    .btn-primary { background: linear-gradient(135deg, var(--accent), #22d3ee); color:#0b1022; }
-    .btn-primary:active { transform: translateY(1px); }
-    .mute { font-size:12px; color:var(--muted); margin-top:8px; }
-    .msg { margin-top:14px; font-weight:600; }
-    .msg.ok { color:var(--ok); }
-    .msg.err { color:var(--err); }
-    .meta { margin-top:12px; font-size:13px; color:var(--muted); }
-    .footer { margin-top:18px; font-size:12px; color:#94a3b8; border-top:1px dashed #233147; padding-top:12px; }
-    .hidden { display:none !important; }
+    :root{--bg:#0f172a;--muted:#94a3b8;--ok:#22c55e;--err:#ef4444;--ac:#06b6d4;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      background:linear-gradient(135deg,#0f172a,#111827 55%,#0b1022);
+      color:#e5e7eb;min-height:100vh;display:grid;place-items:center;padding:24px}
+    .card{width:100%;max-width:520px;background:rgba(17,24,39,.88);
+      border:1px solid rgba(255,255,255,.06);border-radius:16px;
+      box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px}
+    h1{margin:0 0 6px;font-size:22px}
+    .sub{margin:0 0 14px;color:var(--muted);font-size:14px}
+    .row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:8px}
+    input{padding:12px 14px;background:#0b1220;border:1px solid #233147;border-radius:12px;
+      color:#e5e7eb;font-size:18px;text-align:center;letter-spacing:2px}
+    button{padding:12px 16px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--ac),#22d3ee);
+      color:#0b1022;font-weight:700;cursor:pointer}
+    .msg{margin-top:12px;font-weight:700}.ok{color:var(--ok)}.err{color:var(--err)}
+    .meta{margin-top:8px;color:#9ca3af;font-size:13px}
   </style>
 </head>
 <body>
-  <main class="wrap">
+  <main class="card">
     <h1>PIN-kodni kiriting</h1>
-    <p class="sub">Har bir parol <strong>24 soat</strong> amal qiladi va shu muddat ichida <strong>cheksiz marta</strong> ishlatish mumkin.</p>
-
-    <div class="inputgroup">
-      <input id="pinInput" type="text" inputmode="numeric" placeholder="Masalan: 123456" maxlength="12" autocomplete="one-time-code" />
-      <button id="checkBtn" class="btn-primary">Tasdiqlash</button>
+    <p class="sub">Har bir PIN belgilangan kunda (Asia/Tashkent) <b>00:00</b> dan boshlab <b>36 soat</b> amal qiladi.
+      To‘g‘ri PIN kiritilgach, avtomatik yo‘naltiriladi.</p>
+    <div class="row">
+      <input id="pin" type="text" inputmode="numeric" placeholder="Masalan: 123456" maxlength="12" autocomplete="one-time-code" />
+      <button id="go">Tasdiqlash</button>
     </div>
-    <div class="mute">Maslahat: PIN 6 ta raqamdan iborat.</div>
-
-    <div id="message" class="msg hidden"></div>
-    <div id="meta" class="meta hidden"></div>
-
-    <div class="footer">© 2025 PIN tizimi • 24 soatlik parollar</div>
+    <div id="m" class="msg"></div>
+    <div id="meta" class="meta"></div>
   </main>
 
   <script>
-    const elInput = document.getElementById("pinInput");
-    const elBtn = document.getElementById("checkBtn");
-    const elMsg = document.getElementById("message");
-    const elMeta = document.getElementById("meta");
+    // → Yo‘naltiriladigan yakuniy manzil (siz bergan link):
+    const DEST_URL = "https://raw.githack.com/tasdiqdan/manman/dc931f95e948e96a590b2f3e9537110223292dda/index.html";
 
-    const FORCE_URL = "https://raw.githack.com/tasdiqdan/manman/dc931f95e948e96a590b2f3e9537110223292dda/index.html";
+    // Mulberry32 — engil deterministik PRNG (JS)
+    function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;}}
 
-    function setMsg(text, ok=false) {
-      elMsg.textContent = text;
-      elMsg.classList.remove("hidden", "ok", "err");
-      elMsg.classList.add(ok ? "ok" : "err");
-    }
-
-    function setMeta(text) {
-      elMeta.textContent = text;
-      elMeta.classList.remove("hidden");
-    }
-
-    async function getPins() {
-      const res = await fetch("pins.json?ts=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) throw new Error("pins.json yuklab bo'lmadi");
-      return res.json();
-    }
-
-    function fmt(dt) {
-      try {
-        return new Date(dt).toLocaleString(undefined, {
-          year: "numeric", month: "2-digit", day: "2-digit",
-          hour: "2-digit", minute: "2-digit"
-        });
-      } catch(e) { return dt; }
-    }
-
-    elBtn.addEventListener("click", async () => {
-      const entered = elInput.value.trim();
-      elMeta.classList.add("hidden");
-      if (!entered) { setMsg("PIN kiritilmadi.", false); return; }
-
-      try {
-        const db = await getPins();
-        const found = db.find(x => x.pin === entered);
-        if (!found) { setMsg("Xato! PIN kod noto‘g‘ri.", false); return; }
-
-        const now = Date.now();
-        const exp = Date.parse(found.expiry);
-        if (isNaN(exp)) { setMsg("Konfiguratsiya xatosi: amal qilish vaqti noto‘g‘ri.", false); return; }
-        if (now > exp) {
-          setMsg("Xatolik! PIN muddati tugagan.", false);
-          setMeta("Tugash vaqti: " + fmt(found.expiry));
-          return;
-        }
-
-        // Bu safar bir martalik cheklov yo‘q → PIN muddati tugamaguncha ishlataverish mumkin
-        setMsg("PIN to‘g‘ri! Yo‘naltirilmoqda...", true);
-        setMeta("Amal qilish vaqti: " + fmt(found.expiry));
-
-        const url = FORCE_URL || (found.url && typeof found.url === "string" ? found.url : null);
-        setTimeout(() => { if (url) window.location.href = url; else window.location.reload(); }, 800);
-      } catch (e) {
-        setMsg("Server bilan bog‘lanishda xatolik: " + e.message, false);
+    // Berilgan kun uchun 50 ta noyob 6 xonali PIN (kunlar bo‘ylab ham takrorlanmaydi)
+    function genDayPins(y,m,d, usedSet){
+      const base=0xA5F1C6E9;            // bazaviy seed
+      const dayKey=(y*10000+m*100+d)>>>0;
+      const rng=mulberry32((base^dayKey)>>>0);
+      const out=[];
+      while(out.length<50){
+        const n=Math.floor(rng()*1_000_000);
+        const pin=String(n).padStart(6,"0");
+        if(!usedSet.has(pin)){ usedSet.add(pin); out.push(pin); }
       }
-    });
+      return out.sort();
+    }
 
-    elInput.addEventListener("keydown", (e) => { if (e.key === "Enter") elBtn.click(); });
+    // Asia/Tashkent (UTC+5) bo‘yicha kun boshini UTC ga ko‘chirish:
+    // 00:00 (UZT) = 19:00 (UTC) avvalgi kun
+    function startUtcMs(y,m,d){
+      return Date.UTC(y, m-1, d, 19, 0, 0, 0); // UTC
+    }
+
+    // Barcha kunlar uchun bazani generatsiya qilish
+    function buildDB(){
+      const days=[
+        [2025,8,21],
+        [2025,8,22],
+        [2025,8,23],
+        [2025,8,24],
+        [2025,8,25],
+      ];
+      const used=new Set();
+      const db=[];
+      for(const [y,m,d] of days){
+        const pins=genDayPins(y,m,d, used);
+        const st=startUtcMs(y,m,d);
+        const ex=st+36*60*60*1000; // 36 soat
+        for(const p of pins){
+          db.push({p, s:new Date(st).toISOString(), e:new Date(ex).toISOString(), u:DEST_URL});
+        }
+      }
+      return db;
+    }
+
+    const DB = buildDB();
+
+    function fmt(dt){
+      try{
+        return new Date(dt).toLocaleString(undefined,{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+      }catch{return dt;}
+    }
+
+    function check(){
+      const p=document.getElementById("pin").value.trim();
+      const m=document.getElementById("m");
+      const meta=document.getElementById("meta");
+      m.textContent=""; m.className="msg"; meta.textContent="";
+
+      if(!p){ m.textContent="PIN kiritilmadi."; m.classList.add("err"); return; }
+
+      const f=DB.find(x=>x.p===p);
+      if(!f){ m.textContent="Xato! PIN noto‘g‘ri."; m.classList.add("err"); return; }
+
+      const now=Date.now(), st=Date.parse(f.s), ex=Date.parse(f.e);
+      if(Number.isNaN(st)||Number.isNaN(ex)){ m.textContent="Konfiguratsiya xatosi (start/expiry)."; m.classList.add("err"); return; }
+      if(now<st){ m.textContent="Bu PIN hali faollashmagan."; m.classList.add("err"); meta.textContent="Faollashish: "+fmt(f.s)+" • Tugash: "+fmt(f.e); return; }
+      if(now>ex){ m.textContent="PIN muddati tugagan."; m.classList.add("err"); meta.textContent="Tugash: "+fmt(f.e); return; }
+
+      m.textContent="PIN to‘g‘ri! Yo‘naltirilmoqda..."; m.classList.add("ok");
+      meta.textContent="Tugash: "+fmt(f.e);
+      setTimeout(()=>{ location.href=f.u||DEST_URL; }, 800);
+    }
+
+    document.getElementById("go").addEventListener("click", check);
+    document.getElementById("pin").addEventListener("keydown", (e)=>{ if(e.key==="Enter") check(); });
   </script>
 </body>
 </html>
