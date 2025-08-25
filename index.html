@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PIN Kod Tizimi — Har biri 1 oy amal qiladi</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --accent:#06b6d4; --ok:#22c55e; --err:#ef4444; --muted:#9ca3af; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: linear-gradient(135deg, var(--bg), #111827 55%, #0b1022);
+      color:#e5e7eb; min-height:100vh; display:grid; place-items:center; padding:24px; }
+    .wrap { width:100%; max-width:520px; background:rgba(17,24,39,.88); border:1px solid rgba(255,255,255,.06);
+      border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,.35); padding:24px; }
+    h1 { margin:0 0 8px; font-size:22px; }
+    .sub { margin:0 0 14px; color:var(--muted); font-size:14px; line-height:1.45; }
+    .row { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:8px; }
+    input { padding:12px 14px; background:#0b1220; border:1px solid #233147; border-radius:12px;
+      color:#e5e7eb; font-size:18px; text-align:center; letter-spacing:2px; }
+    button { padding:12px 16px; border:0; border-radius:12px; background:linear-gradient(135deg, var(--accent), #22d3ee);
+      color:#0b1022; font-weight:700; cursor:pointer; }
+    .btn-wide { grid-template-columns:1fr; }
+    .msg { margin-top:12px; font-weight:700; }
+    .ok { color:var(--ok); } .err { color:var(--err); }
+    .meta { margin-top:8px; color:var(--muted); font-size:13px; }
+    .footer { margin-top:16px; color:#94a3b8; font-size:12px; border-top:1px dashed #233147; padding-top:10px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1><center>PIN-kodni kiriting</center></h1>
+    <p class="sub">
+      To‘g‘ri PIN kiritilgach, DMED testlariga yo‘naltiriladi.
+    </p>
+
+    <div class="row">
+      <input id="pinInput" type="text" inputmode="numeric" placeholder="Masalan: 123456" maxlength="12" autocomplete="one-time-code" />
+      <button id="checkBtn">Tasdiqlash</button>
+    </div>
+
+    <div class="row btn-wide">
+      <button id="contactBtn" type="button">Admin bilan bog‘lanish</button>
+    </div>
+
+    <div id="message" class="msg"></div>
+    <div id="meta" class="meta"></div>
+    <div class="footer">© 2025 • Har bir PIN 1 oy amal qiladi • 300 ta PIN</div>
+  </main>
+
+  <script>
+    const FORCE_URL = "https://raw.githack.com/tasdiqdan/manman/0363f4a051967d1ea50b6aa7b0f69a751b8b4a4a/index.html";
+
+    function fmt(dt) {
+      try { return new Date(dt).toLocaleString(); }
+      catch { return dt; }
+    }
+
+    async function getPins() {
+      const res = await fetch("pins.json?ts=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("pins.json yuklab bo'lmadi");
+      return res.json();
+    }
+
+    async function check() {
+      const elMsg = document.getElementById("message");
+      const elMeta = document.getElementById("meta");
+      elMsg.textContent = ""; elMsg.className = "msg"; elMeta.textContent = "";
+
+      const entered = document.getElementById("pinInput").value.trim();
+      if (!entered) { elMsg.textContent = "PIN kiritilmadi."; elMsg.classList.add("err"); return; }
+
+      try {
+        const db = await getPins();
+        const found = db.find(x => x.pin === entered);
+        if (!found) { elMsg.textContent = "Xato! PIN noto‘g‘ri."; elMsg.classList.add("err"); return; }
+
+        const now = Date.now();
+        const st = Date.parse(found.start);
+        const ex = Date.parse(found.expiry);
+        if (Number.isNaN(st) || Number.isNaN(ex)) { elMsg.textContent = "Konfiguratsiya xatosi (start/expiry)."; elMsg.classList.add("err"); return; }
+        if (now < st) { elMsg.textContent = "Bu PIN hali faollashmagan."; elMsg.classList.add("err"); elMeta.textContent = "Faollashish: " + fmt(found.start) + " • Tugash: " + fmt(found.expiry); return; }
+        if (now > ex) { elMsg.textContent = "PIN muddati tugagan."; elMsg.classList.add("err"); elMeta.textContent = "Tugash: " + fmt(found.expiry); return; }
+
+        elMsg.textContent = "PIN to‘g‘ri! Yo‘naltirilmoqda..."; elMsg.classList.add("ok");
+        elMeta.textContent = (found.label ? found.label + " • " : "") + "Tugash: " + fmt(found.expiry);
+        setTimeout(() => { window.location.href = FORCE_URL; }, 800);
+      } catch (e) {
+        elMsg.textContent = "Xatolik: " + e.message; elMsg.classList.add("err");
+      }
+    }
+
+    document.getElementById("checkBtn").addEventListener("click", check);
+    document.getElementById("pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") check(); });
+    document.getElementById("contactBtn").addEventListener("click", () => { window.location.href = "https://t.me/tibbiyot_admin"; });
+  </script>
+</body>
+</html>
